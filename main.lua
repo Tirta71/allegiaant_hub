@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Tirta71/allegiaant_hub/main/ui.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Tirta71/allegiaant_hub/main/pick_pet.lua"))()
