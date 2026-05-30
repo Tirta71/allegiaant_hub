@@ -1,98 +1,142 @@
--- // DUPE TOKEN UI + FORCE DISPLAY
+-- // AUTO PICK PET (STUCK ONLY + 10s SCAN 💀)
 
-local player = game:GetService("Players").LocalPlayer
+local player = game.Players.LocalPlayer
+local remote = game.ReplicatedStorage.GameEvents:WaitForChild("PetsService")
 
-local label = player.PlayerGui
-	:WaitForChild("TradeTokenCurrency_UI")
-	:WaitForChild("TradeTokens")
-	:WaitForChild("TextLabel1")
-
-local RunService = game:GetService("RunService")
+local events = game.ReplicatedStorage.GameEvents
+local cooldownEvent = events:WaitForChild("PetCooldownsUpdated")
+local requestCooldown = events:WaitForChild("RequestPetCooldowns")
 
 -- ======================
--- GUI
+-- UID TARGET
 -- ======================
 
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,260,0,150)
-frame.Position = UDim2.new(0.5,-130,0.5,-75)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-Instance.new("UICorner", frame)
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,30)
-title.Text = "💰 Allegiaant Hub"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,0,0,20)
-status.Position = UDim2.new(0,0,0.3,0)
-status.Text = "Ready"
-status.TextColor3 = Color3.fromRGB(180,180,180)
-status.BackgroundTransparency = 1
-
-local btn = Instance.new("TextButton", frame)
-btn.Size = UDim2.new(0.8,0,0,35)
-btn.Position = UDim2.new(0.1,0,0.6,0)
-btn.Text = "DUPE TOKEN"
-btn.BackgroundColor3 = Color3.fromRGB(30,120,30)
-btn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", btn)
+local TargetUID = {
+	["{6435cb45-463a-41df-a5b4-0e452b5033cd}"] = true,
+	["{27eb39cb-8612-456c-99da-ef2bf108df1d}"] = true,
+	["{fb1ed7bc-4d18-44ef-88bb-8b2c1b6980fe}"] = true,
+	["{26064a29-ca27-41d7-83af-ca18b591cee7}"] = true,
+	["{7ae0900c-b3f3-4e61-b3f7-70a50ca978bd}"] = true,
+	["{0ceb1788-aab4-4c46-a7fc-7b727406aad1}"] = true,
+	["{5233097b-f27c-4363-9146-1f59f6fa866e}"] = true,
+	["{b0d1ee43-2be1-4373-ab7d-03b6fc8b2515}"] = true,
+	["{fb256ff4-a970-457d-abb7-ced0e89b1ba0}"] = true,
+	["{9ca952ce-cae3-4f9c-97bf-3796f4171da0}"] = true,
+	["{85883da7-c238-4fcc-9001-a12166462f1e}"] = true,
+	["{f671f21d-c19a-4766-8c13-d57cdf6c8905}"] = true,
+}
 
 -- ======================
--- DUPE LOGIC
+-- MEMORY
 -- ======================
 
-local active = false
-local fakeAmount = 100
+local lastTime = {}
+local lastUpdate = {}
+local processing = {}
+local cache = {}
 
-btn.MouseButton1Click:Connect(function()
-	if active then return end
-	active = true
+-- ======================
+-- REQUEST AWAL
+-- ======================
+
+requestCooldown:FireServer()
+
+-- ======================
+-- SIMPAN DATA DARI SERVER
+-- ======================
+
+local function saveData(petID, time)
+	local cleanID = tostring(petID):gsub("[{}]", "")
+	if not TargetUID[cleanID] then return end
 	
-	status.Text = "Bypassing..."
-	task.wait(0.5)
+	cache[cleanID] = tonumber(time) or 0
+end
+
+cooldownEvent.OnClientEvent:Connect(function(...)
 	
-	status.Text = "Injecting..."
-	task.wait(0.5)
+	local args = {...}
 	
-	status.Text = "Success! +25,000"
-
-	-- tambah fake amount
-	fakeAmount += 25000
-
-	-- floating text
-	local txt = Instance.new("TextLabel", gui)
-	txt.Size = UDim2.new(0,150,0,50)
-	txt.AnchorPoint = Vector2.new(0.5,0.5)
-	txt.Position = UDim2.new(0.5,0,0.3,0)
-
-	txt.Text = "+25,000"
-	txt.TextColor3 = Color3.fromRGB(0,255,100)
-	txt.TextStrokeTransparency = 0.3
-	txt.BackgroundTransparency = 1
-	txt.TextScaled = true
-
-	task.spawn(function()
-		for i = 1,50 do
-			txt.Position = txt.Position - UDim2.new(0,0,0.005,0)
-			txt.TextTransparency = i/50
-			task.wait(0.02)
+	-- CASE 1
+	if #args == 2 and typeof(args[1]) ~= "table" then
+		saveData(args[1], args[2])
+	
+	-- CASE 2
+	elseif #args == 1 and typeof(args[1]) == "table" then
+		for petID, time in pairs(args[1]) do
+			saveData(petID, time)
 		end
-		txt:Destroy()
-	end)
-
-	task.wait(1)
-	active = false
+	end
+	
 end)
 
 -- ======================
--- FORCE DISPLAY (ANTI BALIK)
+-- SCAN TIAP 10 DETIK
 -- ======================
 
-RunService.RenderStepped:Connect(function()
-	label.Text = tostring(fakeAmount)
+task.spawn(function()
+	while true do
+		
+		task.wait(10) -- 🔥 scan delay
+		
+		for cleanID, time in pairs(cache) do
+			
+			-- ======================
+			-- DETECT STUCK
+			-- ======================
+			
+			local isStuck = false
+			
+			if lastTime[cleanID] == time then
+				
+				if tick() - (lastUpdate[cleanID] or 0) > 3 then
+					isStuck = true
+				end
+				
+			else
+				lastTime[cleanID] = time
+				lastUpdate[cleanID] = tick()
+			end
+			
+			-- ======================
+			-- DEBUG
+			-- ======================
+			
+			if time > 0 then
+				print("⏳ CD:", cleanID, time)
+			else
+				print("🟡 READY:", cleanID)
+			end
+			
+			-- ======================
+			-- ACTION (STUCK ONLY)
+			-- ======================
+			
+			if isStuck and not processing[cleanID] then
+				
+				processing[cleanID] = true
+				
+				print("💀 STUCK → PICK:", cleanID)
+				
+				task.spawn(function()
+					
+					for i = 1,8 do
+						
+						pcall(function()
+							remote:FireServer("UnequipPet", "{"..cleanID.."}")
+						end)
+						
+						task.wait(0.15)
+						
+					end
+					
+					task.wait(1)
+					processing[cleanID] = nil
+					
+				end)
+				
+			end
+			
+		end
+		
+	end
 end)
