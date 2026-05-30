@@ -30,6 +30,8 @@ local TargetUID = {
 	["9ca952ce-cae3-4f9c-97bf-3796f4171da0"] = true,
 	["85883da7-c238-4fcc-9001-a12166462f1e"] = true,
 	["f671f21d-c19a-4766-8c13-d57cdf6c8905"] = true,
+	["f2bb7d20-729a-4dc7-bd66-d24af9575af5"] = true,
+	["c43469da-4f9f-448b-b4c5-2f41f93b1b71"] = true,
 }
 
 -- ======================
