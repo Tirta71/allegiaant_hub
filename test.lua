@@ -1,21 +1,152 @@
--- // FORCE TOKEN DISPLAY + FORMAT KOMA
+-- // AUTO PICK PET (ULTIMATE NO MISS 💀)
 
-local player = game:GetService("Players").LocalPlayer
+local player = game.Players.LocalPlayer
+local remote = game.ReplicatedStorage.GameEvents:WaitForChild("PetsService")
 
-local label = player:WaitForChild("PlayerGui")
-	:WaitForChild("TradeTokenCurrency_UI")
-	:WaitForChild("TradeTokens")
-	:WaitForChild("TextLabel1")
+local events = game.ReplicatedStorage.GameEvents
+local cooldownEvent = events:WaitForChild("PetCooldownsUpdated")
+local requestCooldown = events:WaitForChild("RequestPetCooldowns")
 
-local RunService = game:GetService("RunService")
+-- ======================
+-- UID TARGET
+-- ======================
 
-local fakeAmount = 99999999
+local TargetUID = {
+	["6435cb45-463a-41df-a5b4-0e452b5033cd"] = true,
+	["27eb39cb-8612-456c-99da-ef2bf108df1d"] = true,
+	["fb1ed7bc-4d18-44ef-88bb-8b2c1b6980fe"] = true,
+	["26064a29-ca27-41d7-83af-ca18b591cee7"] = true,
+	["7ae0900c-b3f3-4e61-b3f7-70a50ca978bd"] = true,
+	["0ceb1788-aab4-4c46-a7fc-7b727406aad1"] = true,
+	["5233097b-f27c-4363-9146-1f59f6fa866e"] = true,
+	["b0d1ee43-2be1-4373-ab7d-03b6fc8b2515"] = true,
+	["fb256ff4-a970-457d-abb7-ced0e89b1ba0"] = true,
+	["9ca952ce-cae3-4f9c-97bf-3796f4171da0"] = true,
+	["85883da7-c238-4fcc-9001-a12166462f1e"] = true,
+	["f671f21d-c19a-4766-8c13-d57cdf6c8905"] = true,
+	["8c8b19b8-14ec-4e52-a2b6-f360ffabbe89"] = true,
+}
 
--- fungsi format koma
-local function formatNumber(n)
-	return tostring(n):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+-- ======================
+-- MEMORY
+-- ======================
+
+local cache = {}
+local lastSeen = {}
+local processing = {}
+
+-- ======================
+-- REQUEST AWAL
+-- ======================
+
+requestCooldown:FireServer()
+
+-- ======================
+-- SAVE DATA SERVER
+-- ======================
+
+local function saveData(petID, time)
+	local cleanID = tostring(petID):gsub("[{}]", "")
+	if not TargetUID[cleanID] then return end
+	
+	cache[cleanID] = tonumber(time) or 0
+	lastSeen[cleanID] = tick()
 end
 
-RunService.RenderStepped:Connect(function()
-	label.Text = formatNumber(fakeAmount)
+-- ======================
+-- EVENT LISTENER
+-- ======================
+
+cooldownEvent.OnClientEvent:Connect(function(...)
+	
+	local args = {...}
+	
+	if #args == 2 and typeof(args[1]) ~= "table" then
+		saveData(args[1], args[2])
+		
+	elseif #args == 1 and typeof(args[1]) == "table" then
+		for petID, time in pairs(args[1]) do
+			saveData(petID, time)
+		end
+	end
+	
+end)
+
+-- ======================
+-- FORCE SCAN (ANTI MISS)
+-- ======================
+
+task.spawn(function()
+	while true do
+		
+		task.wait(1) -- 🔥 cepat biar no miss
+		
+		for cleanID, time in pairs(cache) do
+			
+			-- ======================
+			-- DETECT STUCK REAL
+			-- ======================
+			
+			local isStuck = false
+			
+			-- 🔥 server ga update = stuck
+			if tick() - (lastSeen[cleanID] or 0) > 4 then
+				isStuck = true
+			end
+			
+			-- ======================
+			-- DEBUG
+			-- ======================
+			
+			if time > 0 then
+				print("⏳ CD:", cleanID, time)
+			else
+				print("🟡 READY:", cleanID)
+			end
+			
+			-- ======================
+			-- ACTION
+			-- ======================
+			
+			if isStuck and not processing[cleanID] then
+				
+				processing[cleanID] = true
+				
+				print("💀 STUCK DETECTED → FORCE PICK:", cleanID)
+				
+				task.spawn(function()
+					
+					for i = 1,10 do -- 🔥 MAX POWER
+						
+						print("🔥 TRY", i, cleanID)
+						
+						pcall(function()
+							remote:FireServer("UnequipPet", "{"..cleanID.."}")
+						end)
+						
+						task.wait(0.1)
+						
+					end
+					
+					task.wait(1.5)
+					processing[cleanID] = nil
+					
+				end)
+				
+			end
+			
+		end
+		
+	end
+end)
+
+-- ======================
+-- AUTO REFRESH REQUEST
+-- ======================
+
+task.spawn(function()
+	while true do
+		task.wait(5)
+		requestCooldown:FireServer() -- 🔥 jaga biar ga kehilangan data
+	end
 end)

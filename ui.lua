@@ -1,142 +1,140 @@
--- // AUTO PICK PET (STUCK ONLY + 10s SCAN 💀)
-
-local player = game.Players.LocalPlayer
-local remote = game.ReplicatedStorage.GameEvents:WaitForChild("PetsService")
-
-local events = game.ReplicatedStorage.GameEvents
-local cooldownEvent = events:WaitForChild("PetCooldownsUpdated")
-local requestCooldown = events:WaitForChild("RequestPetCooldowns")
-
 -- ======================
--- UID TARGET
+-- ALLEGIANT UI (FINAL 💀)
 -- ======================
 
-local TargetUID = {
-	["{6435cb45-463a-41df-a5b4-0e452b5033cd}"] = true,
-	["{27eb39cb-8612-456c-99da-ef2bf108df1d}"] = true,
-	["{fb1ed7bc-4d18-44ef-88bb-8b2c1b6980fe}"] = true,
-	["{26064a29-ca27-41d7-83af-ca18b591cee7}"] = true,
-	["{7ae0900c-b3f3-4e61-b3f7-70a50ca978bd}"] = true,
-	["{0ceb1788-aab4-4c46-a7fc-7b727406aad1}"] = true,
-	["{5233097b-f27c-4363-9146-1f59f6fa866e}"] = true,
-	["{b0d1ee43-2be1-4373-ab7d-03b6fc8b2515}"] = true,
-	["{fb256ff4-a970-457d-abb7-ced0e89b1ba0}"] = true,
-	["{9ca952ce-cae3-4f9c-97bf-3796f4171da0}"] = true,
-	["{85883da7-c238-4fcc-9001-a12166462f1e}"] = true,
-	["{f671f21d-c19a-4766-8c13-d57cdf6c8905}"] = true,
+local UIS = game:GetService("UserInputService")
+
+-- 🔥 PASTIKAN GLOBAL ADA
+getgenv().Allegiant = getgenv().Allegiant or {
+	Enabled = true
 }
 
 -- ======================
--- MEMORY
+-- UI BASE
 -- ======================
 
-local lastTime = {}
-local lastUpdate = {}
-local processing = {}
-local cache = {}
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,230,0,110)
+main.Position = UDim2.new(0,20,0,200)
+main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+
+Instance.new("UICorner", main)
+
+-- 🔥 BORDER
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(255,200,0)
+stroke.Thickness = 1.5
 
 -- ======================
--- REQUEST AWAL
+-- TITLE
 -- ======================
 
-requestCooldown:FireServer()
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,25)
+title.Text = "⚡ Allegiant Hub"
+title.TextColor3 = Color3.fromRGB(255,200,0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
 
 -- ======================
--- SIMPAN DATA DARI SERVER
+-- STATUS
 -- ======================
 
-local function saveData(petID, time)
-	local cleanID = tostring(petID):gsub("[{}]", "")
-	if not TargetUID[cleanID] then return end
+local status = Instance.new("TextLabel", main)
+status.Position = UDim2.new(0,0,0,30)
+status.Size = UDim2.new(1,0,0,20)
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.new(1,1,1)
+status.Font = Enum.Font.Gotham
+status.TextSize = 13
+
+-- ======================
+-- BUTTON
+-- ======================
+
+local btn = Instance.new("TextButton", main)
+btn.Position = UDim2.new(0,15,0,60)
+btn.Size = UDim2.new(1,-30,0,30)
+btn.Text = "TOGGLE"
+btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 13
+
+Instance.new("UICorner", btn)
+
+-- ======================
+-- UPDATE UI FUNCTION
+-- ======================
+
+local function updateUI()
 	
-	cache[cleanID] = tonumber(time) or 0
+	local state = getgenv().Allegiant.Enabled
+	
+	status.Text = state and "AUTO PICK: ON" or "AUTO PICK: OFF"
+	
+	btn.BackgroundColor3 = state
+		and Color3.fromRGB(60,120,60)
+		or Color3.fromRGB(120,40,40)
+		
 end
 
-cooldownEvent.OnClientEvent:Connect(function(...)
+-- INIT STATE
+updateUI()
+
+-- ======================
+-- TOGGLE LOGIC
+-- ======================
+
+btn.MouseButton1Click:Connect(function()
 	
-	local args = {...}
+	getgenv().Allegiant.Enabled = not getgenv().Allegiant.Enabled
 	
-	-- CASE 1
-	if #args == 2 and typeof(args[1]) ~= "table" then
-		saveData(args[1], args[2])
-	
-	-- CASE 2
-	elseif #args == 1 and typeof(args[1]) == "table" then
-		for petID, time in pairs(args[1]) do
-			saveData(petID, time)
-		end
-	end
+	updateUI()
 	
 end)
 
 -- ======================
--- SCAN TIAP 10 DETIK
+-- DRAG SYSTEM 💀
 -- ======================
 
-task.spawn(function()
-	while true do
+local dragging, dragInput, dragStart, startPos
+
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
 		
-		task.wait(10) -- 🔥 scan delay
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+main.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
 		
-		for cleanID, time in pairs(cache) do
-			
-			-- ======================
-			-- DETECT STUCK
-			-- ======================
-			
-			local isStuck = false
-			
-			if lastTime[cleanID] == time then
-				
-				if tick() - (lastUpdate[cleanID] or 0) > 3 then
-					isStuck = true
-				end
-				
-			else
-				lastTime[cleanID] = time
-				lastUpdate[cleanID] = tick()
-			end
-			
-			-- ======================
-			-- DEBUG
-			-- ======================
-			
-			if time > 0 then
-				print("⏳ CD:", cleanID, time)
-			else
-				print("🟡 READY:", cleanID)
-			end
-			
-			-- ======================
-			-- ACTION (STUCK ONLY)
-			-- ======================
-			
-			if isStuck and not processing[cleanID] then
-				
-				processing[cleanID] = true
-				
-				print("💀 STUCK → PICK:", cleanID)
-				
-				task.spawn(function()
-					
-					for i = 1,8 do
-						
-						pcall(function()
-							remote:FireServer("UnequipPet", "{"..cleanID.."}")
-						end)
-						
-						task.wait(0.15)
-						
-					end
-					
-					task.wait(1)
-					processing[cleanID] = nil
-					
-				end)
-				
-			end
-			
-		end
+		local delta = input.Position - dragStart
 		
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
 	end
 end)

@@ -1,6 +1,12 @@
--- // AUTO PICK PET (ULTIMATE NO MISS 💀)
+-- // AUTO PICK PET (TRUE CLEAN NO MISS 💀)
 
 local player = game.Players.LocalPlayer
+
+-- 🔥 GLOBAL CONTROL
+getgenv().Allegiant = {
+	Enabled = true
+}
+
 local remote = game.ReplicatedStorage.GameEvents:WaitForChild("PetsService")
 
 local events = game.ReplicatedStorage.GameEvents
@@ -72,34 +78,37 @@ cooldownEvent.OnClientEvent:Connect(function(...)
 end)
 
 -- ======================
--- FORCE SCAN (ANTI MISS)
+-- MAIN LOOP (SMART 💀)
 -- ======================
 
 task.spawn(function()
 	while true do
 		
-		task.wait(1) -- 🔥 cepat biar no miss
+		-- 🔥 OFF = MATI TOTAL
+		if not getgenv().Allegiant.Enabled then
+			task.wait(2)
+			continue
+		end
+		
+		task.wait(1)
 		
 		for cleanID, time in pairs(cache) do
 			
 			-- ======================
-			-- DETECT STUCK REAL
+			-- DETECT STUCK
 			-- ======================
 			
 			local isStuck = false
 			
-			-- 🔥 server ga update = stuck
 			if tick() - (lastSeen[cleanID] or 0) > 4 then
 				isStuck = true
 			end
 			
 			-- ======================
-			-- DEBUG
+			-- DEBUG (OPTIONAL)
 			-- ======================
 			
-			if time > 0 then
-				print("⏳ CD:", cleanID, time)
-			else
+			if getgenv().Allegiant.Enabled and time <= 0 then
 				print("🟡 READY:", cleanID)
 			end
 			
@@ -107,17 +116,17 @@ task.spawn(function()
 			-- ACTION
 			-- ======================
 			
-			if isStuck and not processing[cleanID] then
+			if getgenv().Allegiant.Enabled and isStuck and not processing[cleanID] then
 				
 				processing[cleanID] = true
 				
-				print("💀 STUCK DETECTED → FORCE PICK:", cleanID)
+				if getgenv().Allegiant.Enabled then
+					print("💀 STUCK → PICK:", cleanID)
+				end
 				
 				task.spawn(function()
 					
-					for i = 1,10 do -- 🔥 MAX POWER
-						
-						print("🔥 TRY", i, cleanID)
+					for i = 1,10 do
 						
 						pcall(function()
 							remote:FireServer("UnequipPet", "{"..cleanID.."}")
@@ -140,12 +149,16 @@ task.spawn(function()
 end)
 
 -- ======================
--- AUTO REFRESH REQUEST
+-- AUTO REFRESH (SMART)
 -- ======================
 
 task.spawn(function()
 	while true do
+		
+		if getgenv().Allegiant.Enabled then
+			requestCooldown:FireServer()
+		end
+		
 		task.wait(5)
-		requestCooldown:FireServer() -- 🔥 jaga biar ga kehilangan data
 	end
 end)
